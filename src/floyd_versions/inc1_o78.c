@@ -209,7 +209,7 @@ void floydWarshall(TYPE* D, int* P, int n, int t){
 			// ------------------- FIN BLOQUE AGREGADO -----------------------
 
 			//Phase 2 y 3
-			#pragma omp for schedule(dynamic)
+			#pragma omp for schedule(dynamic) nowait
 			for(w=0; w<r*2; w++){
 				if(w<r){ 
 					//Phase 2
