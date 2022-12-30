@@ -281,4 +281,19 @@ void floydWarshall(TYPE* D, int* P, int n, int t){
 			}
 		}
 	}
+	
+	// --------------------------- BLOQUE AGREGADO -----------------------
+
+	// liberación de memoria reservada
+	for (x=0; x<r; x++) {
+		free(mutex[x]);
+		free(pendientes[x]);
+		free(cv[x]);
+	}
+
+	free(mutex);
+	free(pendientes);
+	free(cv);
+
+	// ------------------------- FIN BLOQUE AGREGADO -----------------------
 }
