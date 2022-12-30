@@ -213,7 +213,7 @@ void floydWarshall(TYPE* D, int* P, int n, int t){
 			// En la fase 3 se recorren "r" bloques de la columna "k"
 			// En la fase 4 se recorren "rxr" bloques de toda la matriz
 			// En total suman: r*r + 2*r = r * (r+2)
-			#pragma omp for collapse(2) schedule(dynamic)
+			#pragma omp for schedule(dynamic)
 			for(w=0; w<r*(r+2); w++){
 
 				if (w<r){
