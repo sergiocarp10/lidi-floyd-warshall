@@ -208,13 +208,18 @@ void floydWarshall(TYPE* D, int* P, int n, int t){
 			
 			// ------------------- FIN BLOQUE AGREGADO -----------------------
 
-			//Phase 2 y 3
-			#pragma omp for schedule(dynamic)
-			for(w=0; w<r*2; w++){
-				if(w<r){ 
-					//Phase 2
+			// Ahora las fases 2, 3 y 4 están repartidas en un mismo for
+			// En la fase 2 se recorren "r" bloques de la fila "k"
+			// En la fase 3 se recorren "r" bloques de la columna "k"
+			// En la fase 4 se recorren "rxr" bloques de toda la matriz
+			// En total suman: r*r + 2*r = r * (r+2)
+			#pragma omp for collapse(2) schedule(dynamic)
+			for(w=0; w<r*(r+2); w++){
+
+				if (w<r){
+					// Phase 2: se procesa la fila "k"
 					j = w;
-					if(j == k) continue;
+					if(j == k) continue;		// bloque de fase 1 ignorado (k,k)
 					kj = k_row_disp + j*num_of_bock_elems;
 					FW_BLOCK(D, kj, kk, kj, P, b, tmp1, tmp2);
 					
@@ -231,11 +236,11 @@ void floydWarshall(TYPE* D, int* P, int n, int t){
 					}
 
 					// -------------- FIN BLOQUE AGREGADO -----------------
-					
-				} else { 
-					//Phase 3
-					i = w - r;
-					if(i == k) continue;
+
+				} else if (w < 2*r){
+					// Phase 3: se procesa la columna "k"
+					i = w - r;				
+					if(i == k) continue;		// bloque de fase 1 ignorado (k,k)
 					ik = i*row_of_blocks_disp + k_col_disp;
 					FW_BLOCK(D, ik, ik, kk, P, b, tmp1, tmp2);
 					
@@ -252,16 +257,17 @@ void floydWarshall(TYPE* D, int* P, int n, int t){
 					}
 
 					// -------------- FIN BLOQUE AGREGADO -----------------
-					
-				}
-			}
 
-			//Phase 4
-			#pragma omp for collapse(2) schedule(dynamic)
-			for(i=0; i<r; i++){
-				for(j=0; j<r; j++){
+				} else {
+					// Phase 4: w >= 2*r && w < r*(r+2)
+					// Hay r filas "i", y r columnas "j" a recorrer
+					aux = w - 2*r;		// min = 0, max = r*r - 1
+					i = aux / r;		// min = 0, max = r-1, offset = r
+					j = aux % r;		// min = 0, max = r-1, offset = 1
+
+					// Se ignoran los bloques procesados en fases 1-3
 					if( (j == k) || (i == k) ) continue;
-					
+
 					// ----------- BLOQUE AGREGADO -----------------
 
 					// Esperar que se computen los bloques (k,j) e (i,k)
@@ -281,4 +287,19 @@ void floydWarshall(TYPE* D, int* P, int n, int t){
 			}
 		}
 	}
+
+	// --------------------------- BLOQUE AGREGADO -----------------------
+
+	// liberación de memoria reservada
+	for (x=0; x<r; x++) {
+		free(mutex[x]);
+		free(pendientes[x]);
+		free(cv[x]);
+	}
+
+	free(mutex);
+	free(pendientes);
+	free(cv);
+
+	// ------------------------- FIN BLOQUE AGREGADO -----------------------
 }
